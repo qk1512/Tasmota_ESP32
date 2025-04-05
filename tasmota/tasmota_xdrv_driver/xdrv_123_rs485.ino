@@ -4,6 +4,7 @@
 
 #include <TasmotaModbus.h>
 
+#define MAX_SENSORS 100
 
 struct RS485t
 {
@@ -12,7 +13,7 @@ struct RS485t
     uint8_t rx = 0;
     TasmotaModbus *Rs485Modbus = nullptr;
     //uint32_t sensor_active[4];
-    int requestSent[3] = {0,0,0};
+    uint8_t requestSent[MAX_SENSORS] = {0};
     
     uint32_t lastRequestTime; 
 }RS485;
@@ -61,6 +62,18 @@ void Rs485Init(void)
 
     }
 }
+
+bool isWaitingResponse(int sensor_id)
+{
+    for (int i = 0; i < MAX_SENSORS; i++)
+    {
+        if(RS485.requestSent[sensor_id]) continue;
+        if(RS485.requestSent[i]) return true;
+    }
+    return false;
+}
+
+
 
 
 bool Xdrv123(uint32_t function)

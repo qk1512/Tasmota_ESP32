@@ -72,19 +72,16 @@ struct SoilMoisture
     bool valid = false;
 }SM_sensor;
 
-/* bool SMisConnected()
-{
-    if(!RS485.active) return false;
-
-    RS485.Rs485Modbus -> Send(0x01, 0x03, )
-} */
+#define SM_ADDRESS_ID 0x03
+#define SM_FUNCTION_CODE 0x03 
+#define SM_TIMEOUT 150
 
 
 bool SMisConnected()
 {
     if(!RS485.active) return false;
 
-    RS485.Rs485Modbus->Send(0x03, 0x03, 0x0006 , 1);
+    RS485.Rs485Modbus->Send(SM_ADDRESS_ID, SM_FUNCTION_CODE, 0x0006 , 1);
     uint32_t start_time = millis();
     /* while(!RS485.Rs485Modbus -> ReceiveReady())
     {
@@ -92,8 +89,13 @@ bool SMisConnected()
         yield();
     } */
 
-    delay(200);
-    if(!RS485.Rs485Modbus -> ReceiveReady()) return false;
+    uint32_t wait_until = millis() + SM_TIMEOUT;
+    while(!TimeReached(wait_until))
+    {
+        delay(1);
+        if(RS485.Rs485Modbus -> ReceiveReady()) break;
+        if(TimeReached(wait_until)) return false;
+    }
 
     uint8_t buffer[8];
     uint8_t error = RS485.Rs485Modbus -> ReceiveBuffer(buffer, 8);
@@ -126,11 +128,7 @@ void SMreadData(void)
     
     if(SM_sensor.valid == false) return;
 
-    for(int i = 0; i < 3; i++)
-    {
-        if(RS485.requestSent[2] == 1) continue;
-        else if(RS485.requestSent[i] == 1) return;
-    }
+    if(isWaitingResponse(SM_ADDRESS_ID)) return;
 
     static const struct
     {
@@ -144,20 +142,20 @@ void SMreadData(void)
     };
 
     static uint8_t requestIndex = 0;
-    static uint32_t lastRequestTime = 0;
-    static bool requestSent = false;
+    //static uint32_t lastRequestTime = 0;
+    //static bool requestSent = false;
 
-    if (RS485.requestSent[2] == 0 && RS485.lastRequestTime == 0)
+    if (RS485.requestSent[SM_ADDRESS_ID] == 0 && RS485.lastRequestTime == 0)
     {
-        RS485.Rs485Modbus->Send(0x03, 0x03, modbusRequests[requestIndex].regAddr, modbusRequests[requestIndex].regCount);
+        RS485.Rs485Modbus->Send(SM_ADDRESS_ID, SM_FUNCTION_CODE, modbusRequests[requestIndex].regAddr, modbusRequests[requestIndex].regCount);
         //lastRequestTime = millis();
         //requestSent = true;
 
-        RS485.requestSent[2] = 1;
+        RS485.requestSent[SM_ADDRESS_ID] = 1;
         RS485.lastRequestTime = millis();
     }
 
-    if ((RS485.requestSent[2] == 1) && millis() - RS485.lastRequestTime >= 200)
+    if ((RS485.requestSent[SM_ADDRESS_ID] == 1) && millis() - RS485.lastRequestTime >= 200)
     {
         if (RS485.Rs485Modbus->ReceiveReady())
         {
@@ -189,10 +187,10 @@ void SMreadData(void)
                     break;
                 }
             }
-            requestSent = false;
+            //requestSent = false;
             requestIndex = (requestIndex + 1) % (sizeof(modbusRequests) / sizeof(modbusRequests[0]));
 
-            RS485.requestSent[2] = 0;
+            RS485.requestSent[SM_ADDRESS_ID] = 0;
             RS485.lastRequestTime = 0;
         }
     }

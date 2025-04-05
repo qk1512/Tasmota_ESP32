@@ -22,8 +22,6 @@
 
 #define XSNS_119 119
 
-
-
 struct SHT20
 {
     bool  valid = false;
@@ -32,12 +30,17 @@ struct SHT20
     char  name[6] = "SHT20";
 }Sht20;
 
+#define SHT20_ADDRESS_ID 0x02
+#define SHT20_ADDRESS_TEMP_AND_HUM 0x0001
+#define SHT20_FUNCTION_CODE 0x04
+#define SHT20_TIMEOUT 150
+
 bool SHT20isConnected()
 {
     if (!RS485.active)
         return false; // Return early if RS485 is not active
 
-    RS485.Rs485Modbus->Send(0x02, 0x03, (0x01 << 8) | 0x01, (0x00 << 8) | 0x01);
+    RS485.Rs485Modbus->Send(SHT20_ADDRESS_ID, SHT20_FUNCTION_CODE, SHT20_ADDRESS_TEMP_AND_HUM, 1);
 
     uint32_t start_time = millis(); // Store start time
     /* while (!RS485.Rs485Modbus->ReceiveReady())
@@ -46,8 +49,15 @@ bool SHT20isConnected()
             return false; // Timeout after 200ms
         yield();          // Allow background tasks (important for ESP32)
     } */
-    delay(200);
-    if(!RS485.Rs485Modbus -> ReceiveReady()) return false;
+    /* delay(150);
+    if(!RS485.Rs485Modbus -> ReceiveReady()) return false; */
+    uint32_t wait_until = millis() + SHT20_TIMEOUT;
+    while(!TimeReached(wait_until))
+    {
+        delay(1);
+        if(RS485.Rs485Modbus -> ReceiveReady()) break;
+        if(TimeReached(wait_until)) return false;
+    }
 
     uint8_t buffer[8];
     return (RS485.Rs485Modbus->ReceiveBuffer(buffer, 8) == 0 && buffer[0] == 0x02);
@@ -57,7 +67,6 @@ void SHT20Init()
 {
     if (!RS485.active)
     {
-        //AddLog(LOG_LEVEL_INFO, PSTR("SHT20 no GPIOs assigned"));
         return;
     }
 
@@ -68,27 +77,17 @@ void SHT20Init()
 void SHT20ReadData(void)
 {
     if(Sht20.valid == false) return;
-    if(!(PinUsed(GPIO_RS485_RX) && PinUsed(GPIO_RS485_TX))) return; 
-    
-    //static uint32_t lastRequestTime_SHT20 = 0;
-    //static bool requestSent_SHT20 = false;
 
-    for(int i = 0; i < 3; i++)
+    if(isWaitingResponse(SHT20_ADDRESS_ID)) return;
+
+    if (RS485.requestSent[SHT20_ADDRESS_ID] == 0 && RS485.lastRequestTime == 0)
     {
-        if(RS485.requestSent[1] == 1) continue;
-        else if(RS485.requestSent[i] == 1) return;
-    }
-    
-    if (RS485.requestSent[1] == 0 && RS485.lastRequestTime == 0)
-    {
-        RS485.Rs485Modbus->Send(0x02, 0x04, 0x0001, 0x0002);
-        //lastRequestTime_SHT20 = millis();
-        //requestSent_SHT20 = true;
-        RS485.requestSent[1] = 1;
+        RS485.Rs485Modbus->Send(SHT20_ADDRESS_ID, SHT20_FUNCTION_CODE, SHT20_ADDRESS_TEMP_AND_HUM, 0x0002);
+        RS485.requestSent[SHT20_ADDRESS_ID] = 1;
         RS485.lastRequestTime = millis();
     }
     
-    if (RS485.requestSent[1] == 1 && millis() - RS485.lastRequestTime >= 200)
+    if (RS485.requestSent[SHT20_ADDRESS_ID] == 1 && millis() - RS485.lastRequestTime >= 200)
     {
         if (RS485.Rs485Modbus->ReceiveReady())
         {
@@ -99,17 +98,15 @@ void SHT20ReadData(void)
             {
                 AddLog(LOG_LEVEL_INFO, PSTR("Modbus SHT20 Error: %u"), error);
             }
-            else if (buffer[0] == 0x02) // Ensure response is from the correct slave ID
+            else if (buffer[0] == SHT20_ADDRESS_ID) // Ensure response is from the correct slave ID
             {
                 uint16_t temperatureRaw = (buffer[3] << 8) | buffer[4];
                 uint16_t humidityRaw = (buffer[5] << 8) | buffer[6];
                 
                 Sht20.temperature = temperatureRaw / 10.0;
                 Sht20.humidity = humidityRaw / 10.0;
-                //current_sensor = (current_sensor + 1) % MAX_SENSORS; // Switch to the next sensor
             }
-            //requestSent_SHT20 = false; // Reset for the next cycle
-            RS485.requestSent[1] = 0;
+            RS485.requestSent[SHT20_ADDRESS_ID] = 0;
             RS485.lastRequestTime = 0;
         }
     }

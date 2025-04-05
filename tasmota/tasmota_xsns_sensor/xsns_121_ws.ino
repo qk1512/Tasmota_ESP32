@@ -10,11 +10,16 @@ struct WDSt
     char name[15] = "WIND DIRECTION";
 }WDS;
 
+#define WDS_ADDRESS_ID 0x01
+#define WDS_ADDRESS_WIND_DIRECTION 0x0001
+#define WDS_FUNCTION_CODE 0x03
+#define WDS_TIMEOUT 150
+
 bool WDSisConnected()
 {
     if(!RS485.active) return false;
 
-    RS485.Rs485Modbus -> Send(0x01, 0x03, (0x00 << 8) | 0x01, (0x00 << 8) | 0x01);
+    RS485.Rs485Modbus -> Send(WDS_ADDRESS_ID, WDS_FUNCTION_CODE, WDS_ADDRESS_WIND_DIRECTION, 1);
 
     uint32_t start_time = millis();
     /* while(!RS485.Rs485Modbus -> ReceiveReady())
@@ -23,9 +28,13 @@ bool WDSisConnected()
         yield();
     } */
 
-    delay(200);
-    if (!RS485.Rs485Modbus->ReceiveReady())
-        return false;
+    uint32_t wait_until = millis() + WDS_TIMEOUT;
+    while (!TimeReached(wait_until))
+    {
+        delay(1);
+        if (RS485.Rs485Modbus->ReceiveReady()) break;
+        if (TimeReached(wait_until)) return false;
+    }
 
     uint8_t buffer[8];
     uint8_t error = RS485.Rs485Modbus -> ReceiveBuffer(buffer,8);
@@ -47,7 +56,6 @@ void WDSInit(void)
 {
     if(!RS485.active)
     {
-        //AddLog(LOG_LEVEL_INFO, PSTR(""))
         return;
     }
 
@@ -60,27 +68,16 @@ void WDSReadData(void)
 
     if(WDS.valid == false) return;
 
-    //static uint32_t lastRequestTime_WDS = 0;
-    //static bool requestSent_WDS = false;
+    if(isWaitingResponse(WDS_ADDRESS_ID)) return;
 
-    for (int i = 0; i < 3; i++)
+    if (RS485.requestSent[WDS_ADDRESS_ID] == 0 && RS485.lastRequestTime == 0)
     {
-        if (RS485.requestSent[0] == 1)
-            continue;
-        else if (RS485.requestSent[i] == 1)
-            return;
-    }
-
-    if (RS485.requestSent[0] == 0 && RS485.lastRequestTime == 0)
-    {
-        RS485.Rs485Modbus->Send(0x01, 0x03, 0x0001, 0x0001);
-        //lastRequestTime_WDS = millis();
-        //requestSent_WDS = true;
-        RS485.requestSent[0] = 1;
+        RS485.Rs485Modbus->Send(WDS_ADDRESS_ID, WDS_FUNCTION_CODE, WDS_ADDRESS_WIND_DIRECTION, 1);
+        RS485.requestSent[WDS_ADDRESS_ID] = 1;
         RS485.lastRequestTime = millis();
     }
 
-    if ((RS485.requestSent[0] == 1) && millis() - RS485.lastRequestTime >= 200)
+    if ((RS485.requestSent[WDS_ADDRESS_ID] == 1) && millis() - RS485.lastRequestTime >= 200)
     {
         if (RS485.Rs485Modbus->ReceiveReady())
         {
@@ -91,14 +88,12 @@ void WDSReadData(void)
             {
                 AddLog(LOG_LEVEL_INFO, PSTR("Modbus WDS Error: %u"), error);
             }
-            else if (buffer[0] == 0x01) // Ensure response is from the correct slave ID
+            else if (buffer[0] == WDS_ADDRESS_ID) // Ensure response is from the correct slave ID
             {
                 uint16_t wind_directionRaw = (buffer[3] << 8) | buffer[4];
                 WDS.wind_direction = wind_directionRaw / 10.0;
-                //current_sensor = (current_sensor + 1) % MAX_SENSORS; // Switch to the next sensor
             }
-            //requestSent_WDS = false; // Reset for the next cycle
-            RS485.requestSent[0] = 0;
+            RS485.requestSent[WDS_ADDRESS_ID] = 0;
             RS485.lastRequestTime = 0;
         }
         else
@@ -167,9 +162,7 @@ bool Xsns121(uint32_t function)
         switch (function)
         {
         case FUNC_EVERY_250_MSECOND:
-            //if(RS485.requestSent[1] == 1) break;
             WDSReadData();
-            //ModbusPoll();
             break;
         case FUNC_JSON_APPEND:
             WDSShow(1);
