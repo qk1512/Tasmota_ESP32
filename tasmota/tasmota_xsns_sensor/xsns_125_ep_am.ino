@@ -2,6 +2,7 @@
 #ifdef USE_EPAM
 
 #define XSNS_125 125
+#define XRS485_24 24
 
 struct EPAMt
 {
@@ -54,6 +55,7 @@ void EPAMInit(void)
 {
     if(!RS485.active) return;
     EPAM.valid = EPAMisConnected();
+    if(EPAM.valid) Rs485SetActiveFound(EPAM_ADDRESS_ID, EPAM.name);
     AddLog(LOG_LEVEL_INFO, PSTR(EPAM.valid ? "EPAM is connected" : "EPAM is not detected"));
 }
 
@@ -96,9 +98,9 @@ void EPAMReadData(void)
     }
 }
 
-const char HTTP_SNS_EPAM_PM2_5[] PROGMEM = "{s} EPAM PM2.5 {m} %.1f";
-const char HTTP_SNS_EPAM_PM10[] PROGMEM = "{s} EPAM PM10.0 {m} %.1f";
-const char HTTP_SNS_EPAM_PM1[] PROGMEM = "{s} EPAM PM1.0 {m} %.1f";
+const char HTTP_SNS_EPAM_PM2_5[] PROGMEM = "{s} EPAM PM2.5 {m} %.1fμg/m³";
+const char HTTP_SNS_EPAM_PM10[] PROGMEM = "{s} EPAM PM10.0 {m} %.1fμg/m³)";
+const char HTTP_SNS_EPAM_PM1[] PROGMEM = "{s} EPAM PM1.0 {m} %.1fμg/m³)";
 
 #define D_JSON_EPAM_PM2_5 "EPAM PM2.5"
 #define D_JSON_EPAM_PM10 "EPAM PM10.0"
@@ -126,6 +128,8 @@ void EPAMShow(bool json)
 
 bool Xsns125(uint32_t function)
 {
+    if(!Rs485Enabled(XRS485_24)) return false;
+
     bool result = false;
     if(FUNC_INIT == function)
     {

@@ -2,6 +2,7 @@
 #ifdef USE_EP_NO2
 
 #define XSNS_122 122
+#define XRS485_23 23
 
 struct EPNO2t
 {
@@ -49,6 +50,7 @@ void EPNO2Init(void)
 {
     if(!RS485.active) return;
     EPNO2.valid = EPNO2isConnected();
+    if(EPNO2.valid) Rs485SetActiveFound(EPNO2_ADDRESS_ID, EPNO2.name);
     AddLog(LOG_LEVEL_INFO, PSTR(EPNO2.valid ? "EPNO2 is connected" : "EPNO2 is not detected"));
 }
 
@@ -84,7 +86,7 @@ void EPNO2ReadData(void)
     }
 }
 
-const char HTTP_SNS_EPNO2[] PROGMEM = "{s} NO2 Concentration {m} %.1f";
+const char HTTP_SNS_EPNO2[] PROGMEM = "{s} NO2 Concentration {m} %.1fppm";
 #define D_JSON_EPNO2 "EPNO2"
 
 void EPNO2Show(bool json)
@@ -105,6 +107,7 @@ void EPNO2Show(bool json)
 
 bool Xsns122(uint32_t function)
 {
+    if(!Rs485Enabled(XRS485_23)) return false;
     bool result = false;
     if(FUNC_INIT == function)
     {

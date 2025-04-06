@@ -2,6 +2,7 @@
 #ifdef USE_ES_SO2
 
 #define XSNS_123 123
+#define XRS485_21 21
 
 struct ESSO2t
 {
@@ -50,6 +51,7 @@ void ESSO2Init(void)
 {
     if(!RS485.active) return;
     ESSO2.valid = ESSO2isConnected();
+    if(ESSO2.valid) Rs485SetActiveFound(ESSO2_ADDRESS_ID, ESSO2.name);
     AddLog(LOG_LEVEL_INFO, PSTR(ESSO2.valid ? "ESSO2 is connected" : "ESSO2 is not detected"));
 }
 
@@ -106,6 +108,7 @@ void ESSO2Show(bool json)
 
 bool Xsns123(uint32_t function)
 {
+    if(!Rs485Enabled(XRS485_21)) return false;
     bool result = false;
     if(FUNC_INIT == function)
     {

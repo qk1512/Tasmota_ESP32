@@ -21,7 +21,7 @@
 #ifdef USE_RS485
 
 #define XSNS_119 119
-
+#define XRS485_02 2
 struct SHT20
 {
     bool  valid = false;
@@ -71,6 +71,8 @@ void SHT20Init()
     }
 
     Sht20.valid = SHT20isConnected();
+    if(Sht20.valid) Rs485SetActiveFound(SHT20_ADDRESS_ID, Sht20.name);
+
     AddLog(LOG_LEVEL_INFO, PSTR(Sht20.valid ? "SHT20 is connected" : "SHT20 not detected"));
 }
 
@@ -176,6 +178,8 @@ void SHT20Show(bool json)
 
 bool Xsns119(uint32_t function)
 {
+    if(!Rs485Enabled(XRS485_02)) return false;
+    
     bool result = false;
     if(FUNC_INIT == function)
     {

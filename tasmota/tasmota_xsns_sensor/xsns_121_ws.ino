@@ -2,7 +2,7 @@
 #ifdef USE_WDS
 
 #define XSNS_121 121
-
+#define XRS485_01 1
 struct WDSt
 {
     bool valid = false;
@@ -60,6 +60,7 @@ void WDSInit(void)
     }
 
     WDS.valid = WDSisConnected();
+    if(WDS.valid) Rs485SetActiveFound(WDS_ADDRESS_ID, WDS.name);
     AddLog(LOG_LEVEL_INFO, PSTR(WDS.valid ? "Wind Direction is connected" : "Wind Direction is not detected"));
 } 
 
@@ -151,7 +152,9 @@ void WDSShow(bool json)
 
 
 bool Xsns121(uint32_t function)
-{
+{   
+    if(!Rs485Enabled(XRS485_01)) return false;
+    
     bool result = false;
     if(FUNC_INIT == function)
     {

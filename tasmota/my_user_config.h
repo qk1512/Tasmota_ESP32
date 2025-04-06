@@ -612,13 +612,26 @@
 //  #define DS18x20_USE_ID_AS_NAME                 // Use last 3 bytes for naming of sensors
 //  #define DS18x20_USE_ID_ALIAS                   // Add support aliasing for DS18x20 sensors. See comments in xsns_05 files (+0k5 code)
 
+// -- RS485 sensors ----------------------------
+#define USE_RS485
+#define RS485DRIVERS_0_31     0xFFFFFFFF
+#define RS485DRIVERS_32_63    0xFFFFFFFF
+
+#ifdef USE_RS485
+  #define USE_SHT20
+  #define USE_WDS
+  #define USE_SOILMOISTURE
+  #define USE_EP_NO2
+  #define USE_ES_SO2
+  #define USE_EP_O3
+#endif // USE_RS485
+
+
 // -- I2C sensors ---------------------------------
 #define USE_I2C                                  // I2C using library wire (+10k code, 0k2 mem, 124 iram)
 #define I2CDRIVERS_0_31        0xFFFFFFFF          // Enable I2CDriver0  to I2CDriver31
 #define I2CDRIVERS_32_63       0xFFFFFFFF          // Enable I2CDriver32 to I2CDriver63
 #define I2CDRIVERS_64_95       0xFFFFFFFF          // Enable I2CDriver64 to I2CDriver95
-#define I2CDRIVERS_96_127      0xFFFFFFFF
-#define I2CDRIVERS_128_159     0xFFFFFFFF
 
 #ifdef USE_I2C
     #define USE_DHT20
@@ -1103,13 +1116,7 @@
 //#define USE_NEOPOOL                              // Add support for Sugar Valley NeoPool Controller - also known under brands Hidrolife, Aquascenic, Oxilife, Bionet, Hidroniser, UVScenic, Station, Brilix, Bayrol and Hay (+14k flash, +120 mem)
 //  #define NEOPOOL_MODBUS_ADDRESS       1         // Any modbus address
 
-#define USE_RS485
-//#define USE_SHT20
-//#define USE_WDS
-//#define USE_SOILMOISTURE
-#define USE_EP_NO2
-//#define USE_ES_SO2
-//#define USE_EP_O3
+
 //#define USE_EPAM
 
 //#define USE_FLOWRATEMETER                        // Add support for water flow meter YF-DN50 and similary (+1k7 code)

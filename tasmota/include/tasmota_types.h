@@ -480,7 +480,7 @@ typedef union {
 
 const uint32_t settings_text_size = 699;   // Settings->text_pool[size] = Settings->display_model (2D2) - Settings->text_pool (017)
 const uint8_t MAX_TUYA_FUNCTIONS = 16;
-const uint8_t PARAM8_SIZE = 18;            // Number of param bytes (SetOption)
+const uint8_t PARAM8_SIZE = 18;            // Number of param bytes (SetOption) //default is 18 pls change it after test
 
 typedef struct {
   uint16_t      cfg_holder;                // 000  v6 header
@@ -842,7 +842,7 @@ typedef struct {
   uint8_t       modbus_sconfig;            // F62
   uint8_t       windmeter_measure_intvl;   // F63
 
-  uint8_t       free_f64[8];               // F64 - Decrement if adding new Setting variables just above and below
+  uint8_t       free_f64[0];               // F64 - Decrement if adding new Setting variables just above and below (default is 8)
 
   // Only 32 bit boundary variables below
   float         ms5837_pressure_offset;    // F6C
@@ -869,6 +869,7 @@ typedef struct {
   SysMBitfield2 mbflag2;                   // FD8
   uint32_t      shutter_button[MAX_SHUTTER_KEYS];  // FDC
   uint32_t      i2c_drivers[3];            // FEC  I2cDriver
+  uint32_t      rs485_drivers[2];
   uint32_t      cfg_timestamp;             // FF8
   uint32_t      cfg_crc32;                 // FFC
 } TSettings;

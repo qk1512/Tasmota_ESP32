@@ -19,8 +19,9 @@
 
 #ifdef USE_RS485
 #ifdef USE_SOILMOISTURE
-#define XSNS_120 120
 
+#define XSNS_120 120
+#define XRS485_11 11
 /*
 Inquiry Frame
 --------------------------------------------------------------------------------------
@@ -118,6 +119,7 @@ void SMInit(void)
         return;
     }
     SM_sensor.valid = SMisConnected();
+    if(SM_sensor.valid) Rs485SetActiveFound(SM_ADDRESS_ID, SM_sensor.name);
     AddLog(LOG_LEVEL_INFO, PSTR(SM_sensor.valid ? "Soil Moisture is connected" : "Soil Moisture is not detected"));
 }
 
@@ -248,6 +250,7 @@ void SMShow(bool json)
 
 bool Xsns120(uint32_t function)
 {
+    if(!Rs485Enabled(XRS485_11)) return false;
     bool result = false;
     if (FUNC_INIT == function)
     {

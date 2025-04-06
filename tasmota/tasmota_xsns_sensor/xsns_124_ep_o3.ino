@@ -2,7 +2,7 @@
 #ifdef USE_EP_O3
 
 #define XSNS_124 124
-
+#define XRS485_22 22
 struct EPO3t
 {
     bool valid = false;
@@ -49,6 +49,7 @@ void EPO3Init(void)
 {
     if(!RS485.active) return; 
     EPO3.valid = EPO3isConnected();
+    if(EPO3.valid) Rs485SetActiveFound(EPO3_ADDRESS_ID, EPO3.name);
     AddLog(LOG_LEVEL_INFO, PSTR(EPO3.valid ? "EPO3 is connected" : "EPO3 is not detected"));
 }
 
@@ -85,7 +86,7 @@ void EPO3ReadData(void)
     }
 }
 
-const char HTTP_SNS_EPO3[] PROGMEM = "{s} O3 concentration {m} %.1f";
+const char HTTP_SNS_EPO3[] PROGMEM = "{s} O3 concentration {m} %.1fppm";
 #define D_JSON_EPO3 "EPO3"
 
 void EPO3Show(bool json)
@@ -107,6 +108,7 @@ void EPO3Show(bool json)
 
 bool Xsns124(uint32_t function)
 {
+    if(!Rs485Enabled(XRS485_22)) return false;
     bool result = false;
     if(FUNC_INIT == function)
     {

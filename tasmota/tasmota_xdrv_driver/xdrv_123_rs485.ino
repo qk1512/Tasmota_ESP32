@@ -13,8 +13,8 @@ struct RS485t
     uint8_t rx = 0;
     TasmotaModbus *Rs485Modbus = nullptr;
     //uint32_t sensor_active[4];
-    uint8_t requestSent[MAX_SENSORS] = {0};
-    
+    bool requestSent[MAX_SENSORS] = {false};
+    uint32_t _active[3];
     uint32_t lastRequestTime; 
 }RS485;
 
@@ -73,7 +73,22 @@ bool isWaitingResponse(int sensor_id)
     return false;
 }
 
+void Rs485SetActive(uint32_t addr)
+{
+    addr &= 0x77;
+    RS485._active[addr/32] |= (1 << (addr %32));
+}
 
+bool Rs485Active(uint32_t addr)
+{
+    addr &= 0x7F;
+    return (RS485._active[addr/32] & (1 << (addr %32)));
+}
+void Rs485SetActiveFound(uint32_t addr, const char *types)
+{
+    Rs485SetActive(addr);
+    AddLog(LOG_LEVEL_INFO, PSTR("RS485: %s found at 0x%02x"), types, addr);
+}
 
 
 bool Xdrv123(uint32_t function)
